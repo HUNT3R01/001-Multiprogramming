@@ -1,0 +1,148 @@
+# 001 - Multiprogramming
+## Building a Bare-Metal ARM Operating System
+### Operating Systems — BeagleBone Black (AM335x, ARM Cortex-A8)
+
+---
+
+## Descripcion general
+
+Este proyecto implementa un sistema de multiprogramming bare-metal sobre la BeagleBone Black.
+El sistema corre sin un OS subyacente y maneja tres programas en memoria simultaneamente:
+
+- **OS block** — inicializa el hardware, maneja interrupciones y hace scheduling
+- **Proceso 1 (P1)** — imprime digitos 0-9 en bucle infinito
+- **Proceso 2 (P2)** — imprime letras a-z en bucle infinito
+
+El OS usa el DMTimer2 de la AM335x para generar interrupciones periodicas.
+En cada interrupcion un scheduler Round-Robin hace un context switch entre P1 y P2,
+produciendo salida intercalada en la consola serial.
+
+---
+
+## Estructura del proyecto
+
+```
+001-Multiprogramming/
+├── os/
+│   ├── root.s      // Arranque ARM: vector table, reset handler, IRQ handler
+│   ├── os.c        // Hardware init: UART, Watchdog, Timer, INTC, PCBs
+│   ├── os.h        // Defines de hardware, struct PCB, prototipos
+│   └── os.ld       // Linker script del OS (base 0x82000000)
+├── user/
+│   ├── P1/
+│   │   ├── main.c  // Proceso 1: imprime digitos 0-9
+│   │   └── p1.ld   // Linker script P1 (base 0x82100000)
+│   └── P2/
+│       ├── main.c  // Proceso 2: imprime letras a-z
+│       └── p2.ld   // Linker script P2 (base 0x82200000)
+├── lib/
+│   ├── stdio.c     // PRINT / READ para los procesos de usuario
+│   ├── stdio.h
+│   ├── string.c    // Utilidades de strings
+│   └── string.h
+└── Makefile        // Compila os.bin, p1.bin, p2.bin
+```
+
+---
+
+## Mapa de memoria
+
+| Region       | Direccion  | Tamaño | Descripcion                  |
+|--------------|------------|--------|------------------------------|
+| OS code/data | 0x82000000 | 64 KB  | Codigo y datos del OS        |
+| OS stack     | 0x82010000 | 8 KB   | Stack del OS (crece abajo)   |
+| P1 code/data | 0x82100000 | 64 KB  | Codigo y datos de P1         |
+| P1 stack     | 0x82110000 | 8 KB   | Stack de P1                  |
+| P2 code/data | 0x82200000 | 64 KB  | Codigo y datos de P2         |
+| P2 stack     | 0x82210000 | 8 KB   | Stack de P2                  |
+
+---
+
+## Hardware inicializado
+
+### UART0 (0x44E09000)
+Comunicacion serial para output en consola.
+Usa polling sobre el bit THRE del registro LSR antes de escribir cada caracter.
+El bootloader U-Boot ya la inicializa, el OS solo la usa directamente.
+
+### Watchdog WDT1 (0x44E35000)
+La BeagleBone reinicia automaticamente la board despues de ~60 segundos
+si no se deshabilita el watchdog. La secuencia obligatoria es:
+```c
+PUT32(WDT_WSPR, 0xAAAA);  // paso 1
+// esperar WDT_WWPS
+PUT32(WDT_WSPR, 0x5555);  // paso 2
+// esperar WDT_WWPS
+```
+
+### DMTimer2 (0x48040000)
+Configurado para generar una interrupcion de overflow cada ~2 segundos
+con un valor de carga de 0xFE91CA00 a 24 MHz.
+Corre en modo auto-reload para repetirse automaticamente.
+
+### INTC (0x48200000)
+Controlador de interrupciones. Se desenmascara el IRQ 68 (DMTimer2 overflow)
+en el registro MIR_CLEAR2. Sin esto la CPU nunca recibe la interrupcion.
+
+---
+
+## Process Control Block (PCB)
+
+Cada proceso tiene un PCB que guarda su estado completo:
+
+```c
+typedef struct {
+    unsigned int pid;       // ID del proceso: 1=P1, 2=P2
+    unsigned int regs[13];  // Registros R0-R12
+    unsigned int sp;        // Stack pointer
+    unsigned int lr;        // Link register
+    unsigned int pc;        // Program counter (donde reanudar)
+    unsigned int cpsr;      // Status register guardado
+    ProcessState state;     // READY o RUNNING
+} PCB;
+```
+
+Cuando el timer interrumpe un proceso, su estado completo se guarda en su PCB.
+Al reanudarlo, se restaura todo desde el PCB y continua exactamente donde fue interrumpido.
+
+---
+
+### Compilar
+```bash
+make clean
+make all
+```
+
+Genera tres binarios en `build/`:
+```
+build/os.bin   -> cargar en 0x82000000
+build/p1.bin   -> cargar en 0x82100000
+build/p2.bin   -> cargar en 0x82200000
+```
+
+---
+
+## Como cargar en la Beagle
+
+Conectar via USB serial (CoolTerm, 115200 8-N-1).
+Presionar SPACE durante el boot para entrar a U-Boot.
+Luego cargar cada binario con Ymodem:
+
+```
+// Cargar P1 primero
+loady 0x82100000
+// Enviar build/p1.bin por Ymodem desde CoolTerm
+
+// Cargar P2
+loady 0x82200000
+// Enviar build/p2.bin por Ymodem
+
+// Cargar OS
+loady 0x82000000
+// Enviar build/os.bin por Ymodem
+
+// Ejecutar
+go 0x82000000
+```
+
+---
