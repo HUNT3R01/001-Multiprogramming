@@ -107,6 +107,13 @@ Al reanudarlo, se restaura todo desde el PCB y continua exactamente donde fue in
 
 ---
 
+## Como compilar
+
+### Requisitos
+- `arm-none-eabi-gcc`
+- `arm-none-eabi-ld`
+- `arm-none-eabi-objcopy`
+
 ### Compilar
 ```bash
 make clean
@@ -122,7 +129,7 @@ build/p2.bin   -> cargar en 0x82200000
 
 ---
 
-## Como cargar en la Beagle
+## Como cargar en la BeagleBone (U-Boot)
 
 Conectar via USB serial (CoolTerm, 115200 8-N-1).
 Presionar SPACE durante el boot para entrar a U-Boot.
