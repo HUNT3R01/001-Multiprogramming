@@ -1,43 +1,76 @@
 #ifndef OS_H
 #define OS_H
-
-#include <stdint.h>
-
-/* --- Direcciones Base de Hardware (BeagleBone Black AM335x) --- */
-#define WDT1_BASE       0x44E35000
+//BeagleBone Black 
+/* UART0 */
 #define UART0_BASE      0x44E09000
-#define DMTIMER2_BASE   0x48040000
-#define INTC_BASE       0x48200000
+#define UART_THR        (UART0_BASE + 0x00)
+#define UART_LSR        (UART0_BASE + 0x14)
+#define UART_LSR_TX     0x20
 
-/* --- Bloque de Control de Procesos (PCB) --- */
-typedef enum { READY, RUNNING } ProcessState;
+/* DMTimer2 */
+#define DMTIMER2_BASE   0x48040000
+#define TCLR            (DMTIMER2_BASE + 0x38)
+#define TCRR            (DMTIMER2_BASE + 0x3C)
+#define TLDR            (DMTIMER2_BASE + 0x40)
+#define TIER            (DMTIMER2_BASE + 0x2C)
+#define TISR            (DMTIMER2_BASE + 0x28)
+#define TIMER_LOAD_VAL  0xFE91CA00      /* ~2 seg a 24 MHz     */
+
+/* INTCPS */
+#define INTCPS_BASE     0x48200000
+#define INTC_MIR_CLR2   (INTCPS_BASE + 0xC8)
+#define INTC_CONTROL    (INTCPS_BASE + 0x48)
+#define TIMER_IRQ_BIT   (1u << 4)       /* IRQ 68 bit 4        */
+
+/* Clock Manager */
+#define CM_PER_TIMER2   0x44E00080
+
+/* Watchdog WDT1 */
+#define WDT_WSPR        0x44E35048
+#define WDT_WWPS        0x44E35034
+#define WDT_WWPS_PEND   (1 << 4)
+
+/* Direcciones de procesos */
+#define P1_ENTRY        0x82100000
+#define P1_STACK_TOP    0x82110000
+#define P2_ENTRY        0x82200000
+#define P2_STACK_TOP    0x82210000
+
+typedef unsigned int size_t;
+
+//PCB — Process Control Block 
+#define NUM_PROCESSES 2
+
+typedef enum { READY = 0, RUNNING = 1 } ProcessState;
 
 typedef struct {
-    uint32_t pid;       // ID del proceso (0=OS, 1=P1, 2=P2)
-    uint32_t sp;        // Puntero de Pila (Stack Pointer)
-    uint32_t pc;        // Contador de Programa (Program Counter)
-    uint32_t lr;        // Link Register
-    uint32_t cpsr;      // Registro de Estado (Status Register)
-    uint32_t r[13];     // Registros de propósito general R0-R12
-    ProcessState state; // Estado actual
+    unsigned int pid;
+    unsigned int regs[13];  /* R0 – R12                    */
+    unsigned int sp;
+    unsigned int lr;
+    unsigned int pc;
+    unsigned int cpsr;
+    ProcessState state;
 } PCB;
 
-/* --- Prototipos de Funciones del OS --- */
-void disable_watchdog(void);
-void init_uart0(void);
-void init_timer(void);
-void init_intc(void);
-void init_os(void);
-void timer_irq_handler(void);
+extern PCB pcb[NUM_PROCESSES];
+extern int current_process;
 
-/* --- Prototipos de Funciones de UART (Usadas por stdio.c) --- */
+//Prototipos  
 void uart_putc(char c);
-void uart_puts(const char *s);
-void uart_itoa(int val, char *buffer);
-// Funciones dummy (vacías) requeridas por tu stdio.c actual
-void print_float(float val);
-void uart_gets_input(char *buffer, int max_len);
-int uart_atoi(const char *str);
-float uart_atof(const char *str);
+char uart_getc(void);
+void uart_putnum(unsigned int num);
+void os_write(const char *s, size_t len);
+void os_read_line(char *buffer, int max_length);
+void os_puts(const char *s);
 
-#endif
+void disable_watchdog(void);
+void timer_init(void);
+void timer_irq_handler(void);
+void init_pcbs(void);
+
+void PUT32(unsigned int addr, unsigned int value);
+unsigned int GET32(unsigned int addr);
+void enable_irq(void);
+
+#endif 

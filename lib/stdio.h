@@ -1,7 +1,10 @@
 #ifndef STDIO_H
 #define STDIO_H
 
-void PRINTF(const char *format,  ...); 
-void READ(const char *format, ...);
+// PRINT (%s, %d, %f y %%)
+void PRINT(const char *fmt, ...);
 
-#endif 
+// READ (%s, %d, %f)
+int READ(const char *fmt, ...);
+
+#endif
