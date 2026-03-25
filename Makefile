@@ -1,5 +1,5 @@
-# make all   -> compila os.bin, p1.bin, p2.bin
-# make clean -> borra build/
+# Makefile — 001-Multiprogramming
+# Target: BeagleBone Black (AM335x Cortex-A8)
 
 CC      = arm-none-eabi-gcc
 LD      = arm-none-eabi-ld
@@ -18,17 +18,17 @@ CFLAGS  = -mcpu=cortex-a8 -marm -nostdlib -nostdinc \
 all: $(OUT)/os.bin $(OUT)/p1.bin $(OUT)/p2.bin
 	@echo ""
 	@echo "======================================"
-	@echo "  Cargar en BeagleBone:"
-	@echo "  loady 0x82000000  -> os.bin"
+	@echo "  Build exitoso! Cargar en BeagleBone:"
 	@echo "  loady 0x82100000  -> p1.bin"
 	@echo "  loady 0x82200000  -> p2.bin"
+	@echo "  loady 0x82000000  -> os.bin"
 	@echo "  go    0x82000000"
 	@echo "======================================"
 
 $(OUT):
 	mkdir -p $(OUT)
 
-# ── OS ─────────────────────────────────────────────────────────
+# ── OS ──────────────────────────────────────────────────────
 $(OUT)/root.o: $(OS_DIR)/root.s | $(OUT)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -42,27 +42,29 @@ $(OUT)/os.bin: $(OUT)/os.elf
 	$(OBJCOPY) -O binary $< $@
 	@echo "[OK] os.bin  -> 0x82000000"
 
-# P1
+# ── P1 — solo compila main.c, funciones del OS via p1.ld ──
 $(OUT)/p1_main.o: $(P1_DIR)/main.c | $(OUT)
 	$(CC) $(CFLAGS) -I$(OS_DIR) -c $< -o $@
 
-$(OUT)/p1.elf: $(OUT)/p1_main.o $(OUT)/os.o $(OUT)/root.o
+$(OUT)/p1.elf: $(OUT)/p1_main.o
 	$(LD) -T $(P1_DIR)/p1.ld $^ -o $@
 
 $(OUT)/p1.bin: $(OUT)/p1.elf
 	$(OBJCOPY) -O binary $< $@
 	@echo "[OK] p1.bin  -> 0x82100000"
-# P2
+
+# ── P2 — solo compila main.c, funciones del OS via p2.ld ──
 $(OUT)/p2_main.o: $(P2_DIR)/main.c | $(OUT)
 	$(CC) $(CFLAGS) -I$(OS_DIR) -c $< -o $@
 
-$(OUT)/p2.elf: $(OUT)/p2_main.o $(OUT)/os.o $(OUT)/root.o
+$(OUT)/p2.elf: $(OUT)/p2_main.o
 	$(LD) -T $(P2_DIR)/p2.ld $^ -o $@
 
 $(OUT)/p2.bin: $(OUT)/p2.elf
 	$(OBJCOPY) -O binary $< $@
 	@echo "[OK] p2.bin  -> 0x82200000"
 
+# ── Clean ────────────────────────────────────────────────────
 clean:
 	rm -rf $(OUT)
 	@echo "[OK] Limpio"

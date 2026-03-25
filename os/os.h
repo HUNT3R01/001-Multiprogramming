@@ -1,6 +1,10 @@
 #ifndef OS_H
 #define OS_H
-//BeagleBone Black 
+
+/* ============================================================
+   BeagleBone Black — AM335x hardware addresses
+   ============================================================ */
+
 /* UART0 */
 #define UART0_BASE      0x44E09000
 #define UART_THR        (UART0_BASE + 0x00)
@@ -36,9 +40,14 @@
 #define P2_ENTRY        0x82200000
 #define P2_STACK_TOP    0x82210000
 
+/* ============================================================
+   Tipos
+   ============================================================ */
 typedef unsigned int size_t;
 
-//PCB — Process Control Block 
+/* ============================================================
+   PCB — Process Control Block
+   ============================================================ */
 #define NUM_PROCESSES 2
 
 typedef enum { READY = 0, RUNNING = 1 } ProcessState;
@@ -56,7 +65,9 @@ typedef struct {
 extern PCB pcb[NUM_PROCESSES];
 extern int current_process;
 
-//Prototipos  
+/* ============================================================
+   Prototipos
+   ============================================================ */
 void uart_putc(char c);
 char uart_getc(void);
 void uart_putnum(unsigned int num);
@@ -73,4 +84,14 @@ void PUT32(unsigned int addr, unsigned int value);
 unsigned int GET32(unsigned int addr);
 void enable_irq(void);
 
-#endif 
+#endif /* OS_H */
+
+// ============================================================
+// Variables puente entre root.s y os.c para el context switch
+// root.s las escribe/lee directamente por nombre
+// ============================================================
+extern unsigned int saved_sp;  // SP del proceso interrumpido
+extern unsigned int saved_lr;  // LR del proceso interrumpido
+extern unsigned int next_sp;   // SP del siguiente proceso
+extern unsigned int next_lr;   // LR del siguiente proceso
+extern unsigned int next_pc;   // PC del siguiente proceso
