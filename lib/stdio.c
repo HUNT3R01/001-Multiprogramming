@@ -1,7 +1,7 @@
 #include "stdio.h"
-#include "../os/os.h"
-#include <stdarg.h>
-#include <stddef.h>
+#include "os.h"
+#include "stdarg.h"
+#include "stddef.h"
 
 static size_t my_strlen(const char *s) {
   size_t n = 0;
@@ -150,6 +150,9 @@ void PRINT(const char *fmt, ...) {
       char buf[32];
       ftoa_simple((float)dv, buf, sizeof(buf));
       write_s(buf);
+    } else if (spec == 'c') {
+      char c_val = (char)va_arg(ap, int);
+      write_c(c_val);
     } else {
       // spec desconocido: imprimir tal cual
       write_c('%');

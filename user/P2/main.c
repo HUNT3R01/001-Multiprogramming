@@ -1,15 +1,6 @@
 // user/P2/main.c
 // Proceso 2 — imprime letras a-z en bucle infinito
-
-static void call_os_puts(const char *s) {
-    typedef void (*fn_t)(const char *);
-    ((fn_t)0x82000320)(s);
-}
-
-static void call_uart_putc(char c) {
-    typedef void (*fn_t)(char);
-    ((fn_t)0x82000120)(c);
-}
+#include "stdio.h"
 
 static void delay(void) {
     volatile int i;
@@ -19,9 +10,7 @@ static void delay(void) {
 void p2_main(void) {
     char c = 'a';
     while (1) {
-        call_os_puts("----From P2: ");
-        call_uart_putc(c);
-        call_os_puts("\r\n");
+        PRINT("----From P2: %c\r\n", c);
         c = (c == 'z') ? 'a' : c + 1;
         delay();
     }

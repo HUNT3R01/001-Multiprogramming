@@ -77,7 +77,7 @@ void os_puts(const char *s);
 
 void disable_watchdog(void);
 void timer_init(void);
-void timer_irq_handler(void);
+unsigned int timer_irq_handler(unsigned int current_sp);
 void init_pcbs(void);
 
 void PUT32(unsigned int addr, unsigned int value);
@@ -85,13 +85,3 @@ unsigned int GET32(unsigned int addr);
 void enable_irq(void);
 
 #endif /* OS_H */
-
-// ============================================================
-// Variables puente entre root.s y os.c para el context switch
-// root.s las escribe/lee directamente por nombre
-// ============================================================
-extern unsigned int saved_sp;  // SP del proceso interrumpido
-extern unsigned int saved_lr;  // LR del proceso interrumpido
-extern unsigned int next_sp;   // SP del siguiente proceso
-extern unsigned int next_lr;   // LR del siguiente proceso
-extern unsigned int next_pc;   // PC del siguiente proceso
