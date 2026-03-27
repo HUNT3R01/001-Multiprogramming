@@ -16,8 +16,10 @@
 #define TCRR            (DMTIMER2_BASE + 0x3C)  
 #define TLDR            (DMTIMER2_BASE + 0x40)   
 
-
-#define TIMER_LOAD_VAL  0xFE91CA00
+//   Frecuencia 24MHz
+//   Quantum del Round-Robin en milisegundos.
+#define TIMER_INPUT_HZ  24000000
+#define QUANTUM_MS      10000
 
 //INTCPS - Controlador de interrupciones
 
