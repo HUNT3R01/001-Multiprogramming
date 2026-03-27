@@ -25,17 +25,20 @@ vector_table:
 // Reset handler
 // ============================================================
 reset_handler:
-    // Poner CPU en System mode, IRQs deshabilitadas
-    // 0xDF = 11011111 = SYS mode (11111) + I=1 + F=1
-    msr cpsr_c, #0xDF
-
-    // Stack del OS
+    @ 1. Poner CPU en Modo IRQ (0xD2) y darle su propio Stack arriba de todo
+    msr cpsr_c, #0xD2
     ldr sp, =_stack_top
 
-    // Limpiar .bss — variables globales empiezan en 0
+    @ 2. Poner CPU en Modo SYS (0xDF) y darle su Stack al OS (4KB más abajo)
+    msr cpsr_c, #0xDF
+    ldr sp, =_stack_top
+    sub sp, sp, #0x1000
+
+    @ Limpiar .bss — variables globales empiezan en 0
     ldr r0, =__bss_start__
     ldr r1, =__bss_end__
     mov r2, #0
+
 clear_bss:
     cmp  r0, r1
     bge  bss_done
@@ -134,8 +137,7 @@ enable_irq:
 // ============================================================
 .section .bss
 .align 4
-__bss_start__:
 _stack_bottom:
     .skip 0x2000
 _stack_top:
-__bss_end__:
+

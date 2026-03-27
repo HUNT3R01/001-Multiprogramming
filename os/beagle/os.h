@@ -48,7 +48,7 @@ typedef unsigned int size_t;
 /* ============================================================
    PCB — Process Control Block
    ============================================================ */
-#define NUM_PROCESSES 2
+#define NUM_PROCESSES 3
 
 typedef enum { READY = 0, RUNNING = 1 } ProcessState;
 

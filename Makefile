@@ -14,7 +14,7 @@ P2_DIR  = user/P2
 OUT     = build
 
 CFLAGS  = -mcpu=cortex-a8 -marm -nostdlib -nostdinc \
-          -ffreestanding -O0 -g -Wall
+          -ffreestanding -O0 -g -Wall -Ilib -I$(OS_DIR)
 
 .PHONY: all clean qemu
 
@@ -41,6 +41,9 @@ $(OUT)/root.o: $(OS_DIR)/root.s | $(OUT)
 $(OUT)/os.o: $(OS_DIR)/os.c | $(OUT)
 	$(CC) $(CFLAGS) -I$(OS_DIR) -c $< -o $@
 
+$(OUT)/stdio.o: lib/stdio.c | $(OUT)
+	$(CC) $(CFLAGS) -c $< -o $@
+
 $(OUT)/os.elf: $(OUT)/root.o $(OUT)/os.o
 	$(LD) -T $(OS_DIR)/os.ld $(OUT)/root.o $(OUT)/os.o -o $@
 
@@ -52,8 +55,8 @@ $(OUT)/os.bin: $(OUT)/os.elf
 $(OUT)/p1_main.o: $(P1_DIR)/main.c | $(OUT)
 	$(CC) $(CFLAGS) -I$(OS_DIR) -c $< -o $@
 
-$(OUT)/p1.elf: $(OUT)/p1_main.o
-	$(LD) -T $(P1_DIR)/p1.ld $^ -o $@
+$(OUT)/p1.elf: $(OUT)/p1_main.o $(OUT)/stdio.o
+	$(LD) -T user/P1/p1.ld $(OUT)/p1_main.o $(OUT)/stdio.o -R $(OUT)/os.elf /usr/lib/gcc/arm-none-eabi/13.2.1/libgcc.a -o $@
 
 $(OUT)/p1.bin: $(OUT)/p1.elf
 	$(OBJCOPY) -O binary $< $@
@@ -63,8 +66,8 @@ $(OUT)/p1.bin: $(OUT)/p1.elf
 $(OUT)/p2_main.o: $(P2_DIR)/main.c | $(OUT)
 	$(CC) $(CFLAGS) -I$(OS_DIR) -c $< -o $@
 
-$(OUT)/p2.elf: $(OUT)/p2_main.o
-	$(LD) -T $(P2_DIR)/p2.ld $^ -o $@
+$(OUT)/p2.elf: $(OUT)/p2_main.o $(OUT)/stdio.o
+	$(LD) -T user/P2/p2.ld $(OUT)/p2_main.o $(OUT)/stdio.o -R $(OUT)/os.elf /usr/lib/gcc/arm-none-eabi/13.2.1/libgcc.a -o $@
 
 $(OUT)/p2.bin: $(OUT)/p2.elf
 	$(OBJCOPY) -O binary $< $@

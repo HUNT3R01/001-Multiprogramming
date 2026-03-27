@@ -22,6 +22,3 @@ SECTIONS
     _p1_stack_top = .;
 }
 
-/* Simbolos del OS en sus direcciones absolutas */
-os_puts   = 0x82000320;
-uart_putc = 0x82000120;
