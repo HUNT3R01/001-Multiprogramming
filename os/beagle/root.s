@@ -1,143 +1,135 @@
 .section .text
 .syntax unified
-.code 32
+.arm
 .globl _start
+.globl PUT32
+.globl GET32
+.globl enable_irq
+.globl start_first_process
 
-// Variables puente definidas en os.c
+.extern main
+.extern timer_irq_handler
+.extern __bss_start__
+.extern __bss_end__
+.extern _stack_top
 
-// ============================================================
-// Tabla de vectores ARM
-// Debe estar al inicio del binario (0x82000000)
-// ============================================================
 .align 5
 _start:
 vector_table:
-    b reset_handler        // 0x00 Reset
-    b hang                 // 0x04 Undefined Instruction
-    b hang                 // 0x08 SVC
-    b hang                 // 0x0C Prefetch Abort
-    b hang                 // 0x10 Data Abort
-    b .                    // 0x14 Reserved
-    b irq_handler          // 0x18 IRQ — DMTimer2
-    b hang                 // 0x1C FIQ
+    b reset_handler
+    b hang
+    b hang
+    b hang
+    b hang
+    b .
+    b irq_handler
+    b hang
 
-// ============================================================
-// Reset handler
-// ============================================================
 reset_handler:
-    @ 1. Poner CPU en Modo IRQ (0xD2) y darle su propio Stack arriba de todo
+    //C onfigura stack para modo IRQ
     msr cpsr_c, #0xD2
     ldr sp, =_stack_top
 
-    @ 2. Poner CPU en Modo SYS (0xDF) y darle su Stack al OS (4KB más abajo)
+    // Configura stack para modo SYS/OS
     msr cpsr_c, #0xDF
     ldr sp, =_stack_top
     sub sp, sp, #0x1000
 
-    @ Limpiar .bss — variables globales empiezan en 0
+    // Instala la tabla de vectores
+    ldr r0, =vector_table
+    mcr p15, 0, r0, c12, c0, 0
+
+    // Limpia la sección .bss
     ldr r0, =__bss_start__
     ldr r1, =__bss_end__
     mov r2, #0
 
 clear_bss:
-    cmp  r0, r1
-    bge  bss_done
-    str  r2, [r0], #4
-    b    clear_bss
+    cmp r0, r1
+    bge bss_done
+    str r2, [r0], #4
+    b clear_bss
+
 bss_done:
-    dsb
-    isb
-
-    // Instalar tabla de vectores via VBAR (CP15 c12)
-    ldr r0, =vector_table
-    mcr p15, 0, r0, c12, c0, 0
-    dsb
-    isb
-
-    // Saltar a main() en C
-    bl  main
+    bl main
 
 hang:
-    b   hang
+    b hang
 
-// ============================================================
-// IRQ handler — DMTimer2
-// ============================================================
 irq_handler:
-    @ 1. Ajustar direccion de retorno
+    // Ajusta LR para que apunte a la instrucción correcta de retorno
     sub lr, lr, #4
-    
-    @ 2. Guardar R0-R3 temporalmente en la pila de IRQ para usarlos
+
+    // Guarda R0-R3 temporalmente en stack IRQ
     stmfd sp!, {r0-r3}
-    
-    @ Leer el PC de retorno y el estado de interrupciones
+
+    // Guarda PC de retorno y SPSR
     mov r1, lr
     mrs r2, spsr
-    
-    @ 3. Cambiar a modo System (SYS) con interrupciones apagadas (0xDF)
+
+    // Cambia a modo SYS para trabajar con la pila del proceso
     msr cpsr_c, #0xDF
-    
-    @ --- AHORA ESTAMOS EN LA PILA PROPIA DEL PROCESO ---
-    @ 4. Guardar PC y CPSR
+
+    // Guarda PC y CPSR del proceso interrumpido
     stmfd sp!, {r1}
     stmfd sp!, {r2}
-    
-    @ 5. Guardar el resto de los registros (R4 a R12 y LR)
+
+    // Guarda R4-R12 y LR
     stmfd sp!, {r4-r12, lr}
-    
-    @ 6. Recuperar R0-R3 de la pila de IRQ y guardarlos en esta pila
-    msr cpsr_c, #0xD2       @ Volver a IRQ temporalmente
+
+    // Recupera R0-R3 desde stack IRQ y los guarda en stack proceso
+    msr cpsr_c, #0xD2
     ldmfd sp!, {r0-r3}
-    msr cpsr_c, #0xDF       @ Regresar a SYS
+    msr cpsr_c, #0xDF
     stmfd sp!, {r0-r3}
-    
-    @ 7. PASAR EL BALON: Mandar SP a C
+
+    // Llama al scheduler en C pasando el SP actual
     mov r0, sp
     bl timer_irq_handler
-    
-    @ 8. RECIBIR EL BALON: C nos devuelve el nuevo SP
+
+    // r0 regresa con el SP del siguiente proceso
     mov sp, r0
-    
-    @ 9. Restaurar registros del nuevo proceso (SYS Mode)
+
+    // Restaura el contexto del nuevo proceso
     ldmfd sp!, {r0-r3}
     ldmfd sp!, {r4-r12, lr}
-    ldmfd sp!, {r2}         @ Leer CPSR
-    ldmfd sp!, {r1}         @ Leer PC
-    
-    @ 10. Restaurar CPSR y PC volviendo a IRQ
-    msr cpsr_c, #0xD2       @ Cambiar a IRQ para el salto final
-    msr spsr_cxsf, r2       @ Cargar el CPSR guardado en el SPSR
-    movs pc, r1             @ Salto mágico con 's' para aplicar el SPSR
+    ldmfd sp!, {r2}
+    ldmfd sp!, {r1}
 
-// ============================================================
-// Acceso a memoria desde C
-// ============================================================
-.globl PUT32
+    // Cambia a modo IRQ para restaurar SPSR y retornar
+    msr cpsr_c, #0xD2
+    msr spsr_cxsf, r2
+    movs pc, r1
+
+// Función usada por C para escribir en memoria mapeada
 PUT32:
     str r1, [r0]
-    bx  lr
+    bx lr
 
-.globl GET32
+// Función usada por C para leer de memoria mapeada
 GET32:
     ldr r0, [r0]
-    bx  lr
+    bx lr
 
-// ============================================================
-// Habilitar IRQ — limpia bit I del CPSR
-// ============================================================
-.globl enable_irq
+// Habilita IRQ en CPSR
 enable_irq:
     mrs r0, cpsr
     bic r0, r0, #(1 << 7)
     msr cpsr_c, r0
-    bx  lr
+    bx lr
 
-// ============================================================
-// Stack del OS — 8 KB
-// ============================================================
+// Restaura el contexto inicial del primer proceso y lo arranca
+start_first_process:
+    mov sp, r0
+    ldmfd sp!, {r0-r3}
+    ldmfd sp!, {r4-r12, lr}
+    ldmfd sp!, {r2}
+    ldmfd sp!, {r1}
+    msr cpsr_cxsf, r2
+    bx r1
+
 .section .bss
 .align 4
 _stack_bottom:
     .skip 0x2000
 _stack_top:
-

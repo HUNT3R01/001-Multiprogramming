@@ -1,59 +1,83 @@
 #ifndef OS_QEMU_H
 #define OS_QEMU_H
 
-/* Como el Makefile usa -nostdinc, definimos nuestros propios tipos */
 typedef unsigned int uint32_t;
 
-/* --- Direcciones Base de Hardware (Máquina VersatilePB en QEMU) --- */
-#define UART0_BASE 0x101F1000
-#define TIMER0_BASE 0x101E2000
-#define VIC_BASE    0x10140000
+/* =========================================================
+   UART0 - PL011 para QEMU VersatilePB
+   ========================================================= */
+#define UART0_BASE      0x101F1000
+#define UART_DR         (*(volatile uint32_t *)(UART0_BASE + 0x00))
+#define UART_FR         (*(volatile uint32_t *)(UART0_BASE + 0x18))
+#define UART_FR_TXFF    (1 << 5)
+#define UART_FR_RXFE    (1 << 4)
 
-/* Macros para acceder a los registros del Timer 0 */
-#define TIMER0_LOAD    (*(volatile uint32_t *)(TIMER0_BASE + 0x00))
-#define TIMER0_VALUE   (*(volatile uint32_t *)(TIMER0_BASE + 0x04))
-#define TIMER0_CONTROL (*(volatile uint32_t *)(TIMER0_BASE + 0x08))
-#define TIMER0_INTCLR  (*(volatile uint32_t *)(TIMER0_BASE + 0x0C))
+/* =========================================================
+   Timer0 - SP804
+   ========================================================= */
+#define TIMER0_BASE     0x101E2000
+#define TIMER0_LOAD     (*(volatile uint32_t *)(TIMER0_BASE + 0x00))
+#define TIMER0_VALUE    (*(volatile uint32_t *)(TIMER0_BASE + 0x04))
+#define TIMER0_CONTROL  (*(volatile uint32_t *)(TIMER0_BASE + 0x08))
+#define TIMER0_INTCLR   (*(volatile uint32_t *)(TIMER0_BASE + 0x0C))
 
-/* Macros para el Vectored Interrupt Controller (VIC) */
-#define VIC_INTENABLE  (*(volatile uint32_t *)(VIC_BASE + 0x10))
+/* Valor del tick para QEMU */
+#define TIMER_LOAD_VAL  1000000
 
-/* --- Estructuras para Procesos (PCB) --- */
-typedef struct {
-    uint32_t r[13];     // Registros R0 a R12
-    uint32_t sp;        // R13 (Stack Pointer)
-    uint32_t lr;        // R14 (Link Register / Return Address)
-    uint32_t pc;        // R15 (Program Counter)
-    uint32_t cpsr;      // Current Program Status Register
-} cpu_context_t;
+/* =========================================================
+   VIC - Controlador de interrupciones de QEMU
+   ========================================================= */
+#define VIC_BASE        0x10140000
+#define VIC_INTENABLE   (*(volatile uint32_t *)(VIC_BASE + 0x10))
+#define TIMER0_IRQ_BIT  (1 << 4)
+
+/* =========================================================
+   PCB
+   ========================================================= */
+#define NUM_PROCESSES 3
 
 typedef enum {
-    PROC_STATE_READY,
-    PROC_STATE_RUNNING
-} proc_state_t;
+    READY = 0,
+    RUNNING = 1
+} ProcessState;
 
 typedef struct {
-    int pid;                  // Process ID (0=OS, 1=P1, 2=P2)
-    proc_state_t state;       // Estado del proceso
-    cpu_context_t context;    // Contexto guardado (registros)
-    uint32_t *stack_base;     // Inicio de su memoria RAM (Stack)
-} pcb_t;
+    unsigned int pid;
+    unsigned int regs[13];
+    unsigned int sp;
+    unsigned int lr;
+    unsigned int pc;
+    unsigned int cpsr;
+    ProcessState state;
+} PCB;
 
-/* --- Declaraciones de funciones --- */
+extern PCB pcb[NUM_PROCESSES];
+extern int current_process;
+
+/* Procesos de usuario */
+extern void p1_main(void);
+extern void p2_main(void);
+
+/* UART */
 void uart_putc(char c);
-void uart_puts(const char *s);
 char uart_getc(void);
+void uart_puts(const char *s);
+void uart_putnum(unsigned int num);
 
+/* I/O del OS */
+void os_write(const char *s, int len);
+void os_puts(const char *s);
+void os_read_line(char *buffer, int max_len);
 
-/* Mapeo de funciones que pide stdio.c a nuestras funciones UART */
-static inline void os_write(const char *buf, int len) {
-    for (int i = 0; i < len; i++) {
-        uart_putc(buf[i]);
-    }
-}
+/* Hardware */
+void timer_init(void);
 
-static inline void os_read_line(char *buf, int max_len) {
-    if (max_len > 0) buf[0] = '\0';
-}
+/* PCB / scheduler */
+void init_pcbs(void);
+unsigned int timer_irq_handler(unsigned int current_sp);
+
+/* Helpers ASM */
+void enable_irq(void);
+void start_first_process(unsigned int sp);
 
 #endif

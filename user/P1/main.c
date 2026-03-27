@@ -1,4 +1,3 @@
-// user/P1/main.c
 // Proceso 1 — imprime digitos 0-9 en bucle infinito
 #include "stdio.h"
 
@@ -15,5 +14,5 @@ void p1_main(void) {
 
 static void delay(void) {
     volatile int i;
-    for (i = 0; i < 2000000; i++);
+    for (i = 0; i < 100000000; i++);
 }

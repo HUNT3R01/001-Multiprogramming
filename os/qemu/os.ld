@@ -2,20 +2,27 @@ ENTRY(_start)
 
 SECTIONS
 {
-    /* QEMU VersatilePB carga el kernel en 0x10000 */
     . = 0x10000;
 
     .text : {
-        *(.text)
+        *(.text*)
+        *(.rodata*)
     }
 
+    . = ALIGN(4);
+
     .data : {
-        *(.data)
+        *(.data*)
     }
+
+    . = ALIGN(4);
 
     .bss : {
         __bss_start = .;
-        *(.bss COMMON)
+        *(.bss*)
+        *(COMMON)
         __bss_end = .;
     }
+
+    . = ALIGN(4);
 }

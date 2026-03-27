@@ -1,4 +1,3 @@
-// user/P2/main.c
 // Proceso 2 — imprime letras a-z en bucle infinito
 #include "stdio.h"
 
@@ -15,5 +14,5 @@ void p2_main(void) {
 
 static void delay(void) {
     volatile int i;
-    for (i = 0; i < 2000000; i++);
+    for (i = 0; i < 100000000; i++);
 }

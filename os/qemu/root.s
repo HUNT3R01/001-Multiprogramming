@@ -1,8 +1,14 @@
 .section .text
+.syntax unified
+.arm
 .global _start
+.global enable_irq
+.global start_first_process
+
+.extern main
+.extern timer_irq_handler
 
 _start:
-    @ --- 1. TABLA DE VECTORES ARM ---
     ldr pc, reset_addr
     ldr pc, undef_addr
     ldr pc, swi_addr
@@ -12,82 +18,90 @@ _start:
     ldr pc, irq_addr
     ldr pc, fiq_addr
 
-@ --- 2. EL DICCIONARIO DE DIRECCIONES ---
 reset_addr:    .word reset
-undef_addr:    .word loop
-swi_addr:      .word loop
-prefetch_addr: .word loop
-abort_addr:    .word loop
+undef_addr:    .word hang
+swi_addr:      .word hang
+prefetch_addr: .word hang
+abort_addr:    .word hang
 irq_addr:      .word irq_handler
-fiq_addr:      .word loop
+fiq_addr:      .word hang
 
 reset:
-    @ 3. Copiar la tabla Y el diccionario a la direccion 0x00000000
+    // Copia la tabla de vectores a 0x00000000
     mov r0, #0x0
     ldr r1, =_start
-    mov r2, #15             @ Ahora copiamos 15 palabras (Instrucciones + Diccionario)
-copy_vec:
+    mov r2, #15
+
+copy_vectors:
     ldr r3, [r1], #4
     str r3, [r0], #4
     subs r2, r2, #1
-    bne copy_vec
+    bne copy_vectors
 
-    @ 4. Configurar la pila (Stack) para el modo Interrupciones (IRQ)
-    msr cpsr_c, #0xD2       @ Cambiar a modo IRQ 
-    ldr sp, =0x00030000     @ Memoria exclusiva para el manejador de IRQ
+    // Stack para IRQ
+    msr cpsr_c, #0xD2
+    ldr sp, =0x00030000
 
-    @ 5. Configurar pila principal (SVC) y HABILITAR interrupciones (Limpiar I-bit)
-    msr cpsr_c, #0x53       @ Cambiar a modo Supervisor (SVC)
-    ldr sp, =0x00020000     @ Memoria exclusiva para el OS
+    // Stack para SVC/OS
+    msr cpsr_c, #0x53
+    ldr sp, =0x00020000
 
-    @ 6. Saltar a C
     bl main
 
-loop:
-    b loop
+hang:
+    b hang
 
-@ --- 3. MANEJADOR DE INTERRUPCIONES ---
 irq_handler:
-    @ 1. Ajustar direccion de retorno
+    // Ajusta LR para retorno correcto
     sub lr, lr, #4
-    
-    @ 2. Guardar R0-R3 temporalmente en la pila de IRQ para usarlos
+
+    // Guarda R0-R3 temporalmente en stack IRQ
     stmfd sp!, {r0-r3}
-    
-    @ Leer el PC de retorno y el estado de interrupciones
+
+    // Guarda PC retorno y SPSR
     mov r1, lr
     mrs r2, spsr
-    
-    @ 3. Cambiar a modo Supervisor (SVC) con interrupciones apagadas (0xD3)
+
+    // Cambia a modo SVC para usar stack del proceso
     msr cpsr_c, #0xD3
-    
-    @ 4. Guardar PC y CPSR
     stmfd sp!, {r1}
     stmfd sp!, {r2}
-    
-    @ 5. Guardar el resto de los registros (R4 a R12 y LR)
     stmfd sp!, {r4-r12, lr}
-    
-    @ 6. Recuperar R0-R3 de la pila de IRQ y guardarlos en esta pila
-    msr cpsr_c, #0xD2       @ Volver a IRQ temporalmente
+
+    // Recupera R0-R3 del stack IRQ y los pasa al stack del proceso
+    msr cpsr_c, #0xD2
     ldmfd sp!, {r0-r3}
-    msr cpsr_c, #0xD3       @ Regresar a SVC
+    msr cpsr_c, #0xD3
     stmfd sp!, {r0-r3}
-    
-    @ 7. SP actual (del proceso) a C
+
+    // Llama al scheduler
     mov r0, sp
-    bl irq_handler_c
-    
-    @ 8. SP del nuevo proceso
+    bl timer_irq_handler
+
+    // Cambia al SP del siguiente proceso
     mov sp, r0
-    
-    @ 9. Restaurar registros del nuevo proceso
+
+    // Restaura el contexto del proceso elegido
     ldmfd sp!, {r0-r3}
     ldmfd sp!, {r4-r12, lr}
-    ldmfd sp!, {r2}         @ Leer CPSR
-    ldmfd sp!, {r1}         @ Leer PC
-    
-    @ 10. Restaurar CPSR y hacer el salto al proceso
+    ldmfd sp!, {r2}
+    ldmfd sp!, {r1}
+
+    // Restaura CPSR y vuelve al proceso
     msr spsr_cxsf, r2
     movs pc, r1
 
+enable_irq:
+    mrs r0, cpsr
+    bic r0, r0, #(1 << 7)
+    msr cpsr_c, r0
+    bx lr
+
+start_first_process:
+    mov sp, r0
+    ldmfd sp!, {r0-r3}
+    ldmfd sp!, {r4-r12, lr}
+    ldmfd sp!, {r2}
+    ldmfd sp!, {r1}
+    msr cpsr_cxsf, r2
+    bx r1
