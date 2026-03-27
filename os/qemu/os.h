@@ -20,7 +20,7 @@ typedef unsigned int uint32_t;
 //   Frecuencia 1MHz
 //   Quantum del Round-Robin en milisegundos.
 #define TIMER_INPUT_HZ  1000000
-#define QUANTUM_MS      10000
+#define QUANTUM_MS      1000
 
 // VIC
 #define VIC_BASE        0x10140000

@@ -1,9 +1,6 @@
 #include "os.h"
 
-/*
-   Servicio básico de escritura del OS.
-   Es usado por la librería stdio para mandar texto.
-*/
+//Escritura 
 void os_write(const char *s, unsigned int len) {
     unsigned int i;
     for (i = 0; i < len; i++) {
@@ -11,19 +8,14 @@ void os_write(const char *s, unsigned int len) {
     }
 }
 
-/*
-   Imprime una cadena completa.
-*/
+// Imprime una cadena completa.
 void os_puts(const char *s) {
     while (*s) {
         uart_putc(*s++);
     }
 }
 
-/*
-   Lee una línea desde UART.
-   Soporta Enter y retroceso básico.
-*/
+// Lee una línea desde UART.
 void os_read_line(char *buffer, int max_length) {
     int i = 0;
 

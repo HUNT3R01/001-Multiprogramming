@@ -1,10 +1,5 @@
 #include "os.h"
 
-/*
-   Main del OS para BeagleBone Black.
-   Inicializa hardware, PCBs y timer.
-   Luego arranca el primer proceso.
-*/
 int main(void) {
     disable_watchdog();
 
