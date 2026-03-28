@@ -1,18 +1,18 @@
-# 001 - Multiprogramming
+# 001 — Multiprogramming
+
+Sistema de multiprogramación bare-metal sobre ARM, con soporte para **BeagleBone Black** y emulación en **QEMU**. Implementa un scheduler Round-Robin dirigido por interrupciones de timer que alterna entre dos procesos de usuario concurrentes, sin sistema operativo subyacente.
+
 ---
 
-## Descripcion general
+## Descripción general
 
-Este proyecto implementa un sistema de multiprogramming bare-metal sobre la BeagleBone Black.
-El sistema corre sin un OS subyacente y maneja tres programas en memoria simultaneamente:
+El proyecto demuestra los fundamentos del multiprogramming en hardware real:
 
-- **OS block** — inicializa el hardware, maneja interrupciones y hace scheduling
-- **Proceso 1 (P1)** — imprime digitos 0-9 en bucle infinito
-- **Proceso 2 (P2)** — imprime letras a-z en bucle infinito
+- **OS bare-metal** — inicializa el hardware, configura la tabla de vectores ARM, maneja interrupciones y realiza context switches.
+- **Proceso 1 (P1)** — imprime dígitos `0-9` en bucle infinito por UART.
+- **Proceso 2 (P2)** — imprime letras `a-z` en bucle infinito por UART.
 
-El OS usa el DMTimer2 de la AM335x para generar interrupciones periodicas.
-En cada interrupcion un scheduler Round-Robin hace un context switch entre P1 y P2,
-produciendo salida intercalada en la consola serial.
+El OS usa el **DMTimer2** (BeagleBone) o el **SP804** (QEMU/VersatilePB) para generar interrupciones periódicas. En cada interrupción, el scheduler Round-Robin guarda el contexto completo del proceso actual en su PCB y restaura el del siguiente, produciendo salida intercalada en la consola serial.
 
 ---
 
@@ -21,132 +21,243 @@ produciendo salida intercalada en la consola serial.
 ```
 001-Multiprogramming/
 ├── os/
-│   ├── root.s      // Arranque ARM: vector table, reset handler, IRQ handler
-│   ├── os.c        // Hardware init: UART, Watchdog, Timer, INTC, PCBs
-│   ├── os.h        // Defines de hardware, struct PCB, prototipos
-│   └── os.ld       // Linker script del OS (base 0x82000000)
+│   ├── beagle/             # Implementación para BeagleBone Black (Cortex-A8)
+│   │   ├── root.s          # Vector table ARM, reset handler, IRQ handler
+│   │   ├── main.c          # Init hardware: Watchdog, PCBs, Timer; lanza P1
+│   │   ├── scheduler.c     # timer_irq_handler — Round-Robin entre P1 y P2
+│   │   ├── pcb.c           # init_pcbs, start_first_process
+│   │   ├── timer.c         # Configuración DMTimer2 + INTC
+│   │   ├── uart.c          # Escritura UART por polling (THRE)
+│   │   ├── io.c            # os_puts, PUT32/GET32
+│   │   ├── watchdog.c      # Deshabilitar WDT1
+│   │   ├── os.h            # Defines de hardware, struct PCB, prototipos
+│   │   └── os.ld           # Linker script OS (base 0x82000000)
+│   └── qemu/               # Implementación para QEMU versatilepb (ARM926EJ-S)
+│       ├── root.s
+│       ├── main.c
+│       ├── scheduler.c
+│       ├── pcb.c
+│       ├── timer.c
+│       ├── uart.c
+│       ├── io.c
+│       ├── watchdog.c      # Stub vacío (QEMU no tiene watchdog)
+│       ├── os.h
+│       └── os.ld
 ├── user/
 │   ├── P1/
-│   │   ├── main.c  // Proceso 1: imprime digitos 0-9
-│   │   └── p1.ld   // Linker script P1 (base 0x82100000)
+│   │   ├── main.c          # Proceso 1: imprime dígitos 0-9
+│   │   └── p1.ld           # Linker script P1 (base 0x82100000)
 │   └── P2/
-│       ├── main.c  // Proceso 2: imprime letras a-z
-│       └── p2.ld   // Linker script P2 (base 0x82200000)
+│       ├── main.c          # Proceso 2: imprime letras a-z
+│       └── p2.ld           # Linker script P2 (base 0x82200000)
 ├── lib/
-│   ├── stdio.c     // PRINT / READ para los procesos de usuario
-│   ├── stdio.h
-│   ├── string.c    // Utilidades de strings
-│   └── string.h
-└── Makefile        // Compila os.bin, p1.bin, p2.bin
+│   ├── stdio.c / stdio.h   # PRINT / READ para procesos de usuario (syscall SWI)
+│   ├── string.c / string.h # Utilidades de strings
+│   └── stdarg.h / stddef.h # Headers mínimos freestanding
+├── build/                  # Binarios generados (ignorar en VCS)
+└── Makefile
 ```
 
 ---
 
-## Mapa de memoria
+## Mapa de memoria (BeagleBone)
 
-| Region       | Direccion  | Tamaño | Descripcion                  |
-|--------------|------------|--------|------------------------------|
-| OS code/data | 0x82000000 | 64 KB  | Codigo y datos del OS        |
-| OS stack     | 0x82010000 | 8 KB   | Stack del OS (crece abajo)   |
-| P1 code/data | 0x82100000 | 64 KB  | Codigo y datos de P1         |
-| P1 stack     | 0x82110000 | 8 KB   | Stack de P1                  |
-| P2 code/data | 0x82200000 | 64 KB  | Codigo y datos de P2         |
-| P2 stack     | 0x82210000 | 8 KB   | Stack de P2                  |
+| Región       | Dirección  | Tamaño | Descripción                |
+|--------------|------------|--------|----------------------------|
+| OS code/data | 0x82000000 | 64 KB  | Código y datos del OS      |
+| OS stack     | 0x82010000 | 8 KB   | Stack del OS (crece hacia abajo) |
+| P1 code/data | 0x82100000 | 64 KB  | Código y datos de P1       |
+| P1 stack     | 0x82110000 | 8 KB   | Stack de P1                |
+| P2 code/data | 0x82200000 | 64 KB  | Código y datos de P2       |
+| P2 stack     | 0x82210000 | 8 KB   | Stack de P2                |
 
 ---
 
 ## Hardware inicializado
 
-### UART0 (0x44E09000)
-Comunicacion serial para output en consola.
-Usa polling sobre el bit THRE del registro LSR antes de escribir cada caracter.
-El bootloader U-Boot ya la inicializa, el OS solo la usa directamente.
+### UART0 — `0x44E09000` (BeagleBone) / PL011 (QEMU)
+Comunicación serial para output en consola. Usa polling sobre el bit **THRE** del registro LSR antes de escribir cada carácter. En BeagleBone, U-Boot ya la inicializa; el OS la usa directamente.
 
-### Watchdog WDT1 (0x44E35000)
-La BeagleBone reinicia automaticamente la board despues de ~60 segundos
-si no se deshabilita el watchdog. La secuencia obligatoria es:
+### Watchdog WDT1 — `0x44E35000` (solo BeagleBone)
+La BeagleBone reinicia automáticamente la board ~60 s después del boot si no se deshabilita el watchdog. La secuencia obligatoria es:
+
 ```c
 PUT32(WDT_WSPR, 0xAAAA);  // paso 1
-// esperar WDT_WWPS
+while (GET32(WDT_WWPS) & (1 << 4));
 PUT32(WDT_WSPR, 0x5555);  // paso 2
-// esperar WDT_WWPS
+while (GET32(WDT_WWPS) & (1 << 4));
 ```
 
-### DMTimer2 (0x48040000)
-Configurado para generar una interrupcion de overflow cada ~2 segundos
-con un valor de carga de 0xFE91CA00 a 24 MHz.
-Corre en modo auto-reload para repetirse automaticamente.
+### DMTimer2 — `0x48040000` (BeagleBone)
+Configurado para generar una interrupción de overflow cada ~2 segundos con valor de carga `0xFE91CA00` a 24 MHz. Corre en modo **auto-reload** para repetirse automáticamente.
 
-### INTC (0x48200000)
-Controlador de interrupciones. Se desenmascara el IRQ 68 (DMTimer2 overflow)
-en el registro MIR_CLEAR2. Sin esto la CPU nunca recibe la interrupcion.
+### SP804 Timer (QEMU/VersatilePB)
+Timer equivalente en la máquina `versatilepb` de QEMU, configurado con el mismo propósito.
+
+### INTC — `0x48200000` (BeagleBone)
+Controlador de interrupciones. Se desenmascara el **IRQ 68** (DMTimer2 overflow) en el registro `MIR_CLEAR2`. Sin esto la CPU nunca recibe la interrupción.
 
 ---
 
 ## Process Control Block (PCB)
 
-Cada proceso tiene un PCB que guarda su estado completo:
+Cada proceso tiene un PCB que guarda su estado completo para el context switch:
 
 ```c
 typedef struct {
-    unsigned int pid;       // ID del proceso: 1=P1, 2=P2
-    unsigned int regs[13];  // Registros R0-R12
+    unsigned int pid;       // ID del proceso: 1 = P1, 2 = P2
+    unsigned int regs[13];  // Registros R0–R12
     unsigned int sp;        // Stack pointer
     unsigned int lr;        // Link register
-    unsigned int pc;        // Program counter (donde reanudar)
+    unsigned int pc;        // Program counter (punto de reanudación)
     unsigned int cpsr;      // Status register guardado
     ProcessState state;     // READY o RUNNING
 } PCB;
 ```
 
-Cuando el timer interrumpe un proceso, su estado completo se guarda en su PCB.
-Al reanudarlo, se restaura todo desde el PCB y continua exactamente donde fue interrumpido.
+Cuando el timer interrumpe un proceso, su estado completo se guarda en su PCB. Al reanudarlo, se restaura todo desde el PCB y continúa exactamente donde fue interrumpido.
 
 ---
 
-## Como compilar
+## Scheduler Round-Robin
 
-### Requisitos
+```c
+unsigned int timer_irq_handler(unsigned int current_sp) {
+    PUT32(TISR, 0x2);           // Limpiar interrupción del timer
+    PUT32(INTC_CONTROL, 0x1);   // Avisar al INTC que la IRQ fue atendida
+
+    pcb[current_process].sp = current_sp;
+    pcb[current_process].state = READY;
+
+    current_process = (current_process == 1) ? 2 : 1;  // Round-Robin
+
+    pcb[current_process].state = RUNNING;
+    return pcb[current_process].sp;
+}
+```
+
+El handler recibe el SP del proceso interrumpido (pasado desde el IRQ handler en ensamblador), lo guarda en el PCB, alterna entre P1 y P2, y retorna el SP del proceso a reanudar.
+
+---
+
+## Requisitos
+
 - `arm-none-eabi-gcc`
 - `arm-none-eabi-ld`
 - `arm-none-eabi-objcopy`
+- `qemu-system-arm` *(solo para el target QEMU)*
 
-### Compilar
+En Ubuntu/Debian:
 ```bash
-make clean
-make all
-```
-
-Genera tres binarios en `build/`:
-```
-build/os.bin   -> cargar en 0x82000000
-build/p1.bin   -> cargar en 0x82100000
-build/p2.bin   -> cargar en 0x82200000
+sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi qemu-system-arm
 ```
 
 ---
 
-## Como cargar en la BeagleBone (U-Boot)
+## Compilación
 
-Conectar via USB serial (CoolTerm, 115200 8-N-1).
-Presionar SPACE durante el boot para entrar a U-Boot.
-Luego cargar cada binario con Ymodem:
+### Target BeagleBone Black
+
+```bash
+make clean
+make beagle       # equivalente a: make all
+```
+
+Genera en `build/`:
 
 ```
-// Cargar P1 primero
+build/os_beagle.bin   →  cargar en 0x82000000
+build/p1.bin          →  cargar en 0x82100000
+build/p2.bin          →  cargar en 0x82200000
+```
+
+### Target QEMU
+
+```bash
+make qemu-build   # solo compilar
+make qemu         # compilar y ejecutar en QEMU
+```
+
+Genera `build/os_qemu.elf` (imagen única que incluye OS + P1 + P2).
+
+---
+
+## Ejecutar en QEMU
+
+```bash
+make qemu
+# o directamente:
+qemu-system-arm -M versatilepb -m 128M -nographic -kernel build/os_qemu.elf
+```
+
+Salida esperada:
+
+```
+=== OS Multiprogramming QEMU ===
+Inicializando PCBs...
+PCBs listos
+Timer listo
+Iniciando P1...
+----From P1: 0
+----From P1: 1
+...
+----From P2: a
+----From P2: b
+...
+```
+
+Para salir de QEMU: `Ctrl+A`, luego `X`.
+
+---
+
+## Cargar en la BeagleBone (U-Boot via Ymodem)
+
+1. Conectar la BeagleBone via USB serial (CoolTerm u otro terminal, **115200 8-N-1**).
+2. Presionar `SPACE` durante el boot para entrar a U-Boot.
+3. Cargar los binarios **en este orden** (los procesos deben estar en memoria antes de que el OS arranque):
+
+```
 loady 0x82100000
-// Enviar build/p1.bin por Ymodem desde CoolTerm
+# → Enviar build/p1.bin por Ymodem desde CoolTerm
 
-// Cargar P2
 loady 0x82200000
-// Enviar build/p2.bin por Ymodem
+# → Enviar build/p2.bin por Ymodem
 
-// Cargar OS
 loady 0x82000000
-// Enviar build/os.bin por Ymodem
+# → Enviar build/os_beagle.bin por Ymodem
 
-// Ejecutar
 go 0x82000000
 ```
 
 ---
+
+## Flags de compilación
+
+| Flag | Descripción |
+|------|-------------|
+| `-mcpu=cortex-a8` | Target Cortex-A8 (BeagleBone) |
+| `-mcpu=arm926ej-s` | Target ARM926EJ-S (QEMU versatilepb) |
+| `-marm` | Forzar juego de instrucciones ARM (no Thumb) |
+| `-nostdlib -nostartfiles` | Sin stdlib ni startup code estándar |
+| `-ffreestanding` | Entorno freestanding (bare-metal) |
+| `-O0 -g` | Sin optimizaciones, con símbolos de debug |
+
+---
+
+## Depuración con GDB + QEMU
+
+QEMU expone un servidor GDB en el puerto 1234:
+
+```bash
+qemu-system-arm -M versatilepb -m 128M -nographic -kernel build/os_qemu.elf -s -S
+```
+
+En otra terminal:
+
+```bash
+arm-none-eabi-gdb build/os_qemu.elf
+(gdb) target remote :1234
+(gdb) continue
+```
+
+El archivo `.vscode/qemu_regs.gdb` incluye comandos útiles para inspeccionar registros ARM en este contexto.
