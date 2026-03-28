@@ -259,5 +259,3 @@ arm-none-eabi-gdb build/os_qemu.elf
 (gdb) target remote :1234
 (gdb) continue
 ```
-
-El archivo `.vscode/qemu_regs.gdb` incluye comandos útiles para inspeccionar registros ARM en este contexto.
