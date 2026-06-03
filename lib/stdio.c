@@ -1,7 +1,12 @@
 #include "stdio.h"
-#include "os.h"
 #include "stdarg.h"
 #include "stddef.h"
+
+#ifdef USER_SYSCALLS
+#include "user_syscalls.h"
+#else
+#include "os.h"
+#endif
 
 static size_t my_strlen(const char *s) {
   size_t n = 0;
@@ -14,11 +19,19 @@ static int is_space(char c) {
 }
 
 static void write_c(char c) {
+#ifdef USER_SYSCALLS
+  (void)sys_write(1, &c, 1);
+#else
   os_write(&c, 1);
+#endif
 }
 
 static void write_s(const char *s) {
+#ifdef USER_SYSCALLS
+  (void)sys_write(1, s, my_strlen(s));
+#else
   os_write(s, my_strlen(s));
+#endif
 }
 
 static void itoa_dec(int v, char *out, size_t out_sz) {
@@ -165,6 +178,10 @@ void PRINT(const char *fmt, ...) {
 
 
 int READ(const char *fmt, ...) {
+#ifdef USER_SYSCALLS
+  (void)fmt;
+  return 0;
+#else
   char line[128];
   os_read_line(line, sizeof(line));
 
@@ -202,4 +219,5 @@ int READ(const char *fmt, ...) {
 
   va_end(ap);
   return assigned;
+#endif
 }

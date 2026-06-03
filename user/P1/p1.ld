@@ -1,10 +1,10 @@
-ENTRY(p1_main)
+ENTRY(p1_start)
 
 SECTIONS
 {
     . = 0x82100000;
 
-    .text : { *(.text) *(.rodata) }
+    .text : { KEEP(*(.text.entry)) *(.text*) *(.rodata*) }
 
     . = ALIGN(4);
     .data : { *(.data) }

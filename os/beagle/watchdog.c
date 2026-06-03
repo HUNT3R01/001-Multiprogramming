@@ -1,3 +1,10 @@
+/*
+ * COMENTARIOS FASE 2 - watchdog.c
+ *
+ * Deshabilita el watchdog WDT1 de la BeagleBone Black para evitar que la placa
+ * se reinicie mientras el kernel esta corriendo la demo.
+ */
+
 #include "os.h"
 
 // Desactiva el watchdog WDT1.

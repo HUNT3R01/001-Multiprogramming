@@ -38,6 +38,8 @@ BEAGLE_OS_OBJS = \
 	$(OUT)/beagle_timer.o \
 	$(OUT)/beagle_pcb.o \
 	$(OUT)/beagle_scheduler.o \
+	$(OUT)/beagle_syscall.o \
+	$(OUT)/beagle_fault.o \
 	$(OUT)/beagle_main.o
 
 beagle: $(OUT)/os_beagle.bin $(OUT)/p1.bin $(OUT)/p2.bin
@@ -64,6 +66,12 @@ $(OUT)/beagle_pcb.o: $(BEAGLE_DIR)/pcb.c $(BEAGLE_DIR)/os.h | $(OUT)
 $(OUT)/beagle_scheduler.o: $(BEAGLE_DIR)/scheduler.c $(BEAGLE_DIR)/os.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
 
+$(OUT)/beagle_syscall.o: $(BEAGLE_DIR)/syscall.c $(BEAGLE_DIR)/os.h | $(OUT)
+	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
+
+$(OUT)/beagle_fault.o: $(BEAGLE_DIR)/fault.c $(BEAGLE_DIR)/os.h | $(OUT)
+	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
+
 $(OUT)/beagle_main.o: $(BEAGLE_DIR)/main.c $(BEAGLE_DIR)/os.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
 
@@ -75,13 +83,13 @@ $(OUT)/os_beagle.bin: $(OUT)/os_beagle.elf
 
 # -------- P1 / P2 para Beagle --------
 
-$(OUT)/stdio_user.o: $(LIB_DIR)/stdio.c $(LIB_DIR)/stdio.h | $(OUT)
+$(OUT)/stdio_user.o: $(LIB_DIR)/stdio.c $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
+	$(CC) $(CFLAGS_BEAGLE) -DUSER_SYSCALLS -c $< -o $@
+
+$(OUT)/p1_main.o: $(P1_DIR)/main.c $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
 
-$(OUT)/p1_main.o: $(P1_DIR)/main.c $(LIB_DIR)/stdio.h | $(OUT)
-	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
-
-$(OUT)/p2_main.o: $(P2_DIR)/main.c $(LIB_DIR)/stdio.h | $(OUT)
+$(OUT)/p2_main.o: $(P2_DIR)/main.c $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
 
 $(OUT)/p1.elf: $(OUT)/p1_main.o $(OUT)/stdio_user.o $(OUT)/os_beagle.elf $(P1_DIR)/p1.ld

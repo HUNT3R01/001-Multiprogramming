@@ -1,3 +1,11 @@
+/*
+ * COMENTARIOS FASE 2 - timer.c
+ *
+ * Inicializa DMTimer2 para generar interrupciones periodicas. Esa interrupcion
+ * es la base del Round-Robin preemptivo: cuando el timer vence, el procesador
+ * entra al vector IRQ de root.s y luego al scheduler en C.
+ */
+
 #include "os.h"
 
 //Convierte el quantum en milisegundos al valor de recarga del DMTimer2.
