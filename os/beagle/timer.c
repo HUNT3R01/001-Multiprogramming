@@ -1,5 +1,4 @@
-/*
- * COMENTARIOS FASE 2 - timer.c
+/* timer.c
  *
  * Inicializa DMTimer2 para generar interrupciones periodicas. Esa interrupcion
  * es la base del Round-Robin preemptivo: cuando el timer vence, el procesador

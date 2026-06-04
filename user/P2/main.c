@@ -1,5 +1,4 @@
-/*
- * COMENTARIOS FASE 2 - user/P2/main.c
+/* user/P2/main.c
  *
  * Proceso de prueba negativa. P2 demuestra:
  *  - SYS_WRITE y SYS_YIELD normales,
@@ -7,7 +6,7 @@
  *  - data_abort intencional para probar aislamiento de faults.
  */
 
-// Proceso 2 — demo final Phase 2.
+// Proceso 2
 // Cubre pruebas negativas de syscall y fault containment por data_abort.
 #include "user_syscalls.h"
 
@@ -46,12 +45,12 @@ void p2_main(void) {
         delay();
     }
 
-    // Pruebas negativas requeridas por Phase 2:
+    // Pruebas negativas requeridas 
     // - descriptor inválido debe regresar -2
     // - puntero inválido en SYS_WRITE debe regresar -3 sin tumbar el kernel
     // - syscall desconocida debe regresar -1
     r_bad_fd = sys_write(9, msg, sizeof(msg) - 1);
-    r_bad_ptr = sys_write(1, (const void *)0xFFFFFFFFu, 8);
+    r_bad_ptr = sys_write(1, (const void *)0xFFFFFFFF, 8);
     r_bad_id = syscall3(99u, 0, 0, 0);
 
     if (r_bad_fd == -2 && r_bad_ptr == -3 && r_bad_id == -1) {
@@ -74,7 +73,7 @@ void p2_main(void) {
 
 // Acceso intencionalmente invalido: debe entrar al data_abort_handler.
 static void force_data_abort(void) {
-    volatile unsigned int *bad_ptr = (volatile unsigned int *)0xFFFFFFFFu;
+    volatile unsigned int *bad_ptr = (volatile unsigned int *)0xFFFFFFFF;
     volatile unsigned int value;
 
     value = *bad_ptr;

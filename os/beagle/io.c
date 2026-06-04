@@ -1,11 +1,4 @@
-/*
- * COMENTARIOS FASE 2 - io.c
- *
- * Funciones simples de entrada/salida usadas por el kernel. En Fase 2 los
- * procesos de usuario no deben llamar esto directamente; deben entrar al
- * kernel mediante SYS_WRITE. El dispatcher de syscalls valida el puntero y
- * luego usa os_write() para imprimir por UART.
- */
+//io.c
 
 #include "os.h"
 

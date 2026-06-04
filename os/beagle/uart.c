@@ -1,5 +1,4 @@
-/*
- * COMENTARIOS FASE 2 - uart.c
+/* uart.c
  *
  * Driver minimo de UART0. Es usado por el kernel para imprimir trazas
  * MODE_SWITCH, resultados de syscalls y mensajes de prueba.

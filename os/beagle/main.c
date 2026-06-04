@@ -1,8 +1,6 @@
-/*
- * COMENTARIOS FASE 2 - main.c
+/*main.c
  *
- * Punto de entrada del kernel para BeagleBone Black.
- * Este archivo solo hace la inicializacion de alto nivel:
+ * Punto de entrada del kernel para la BeagleBone 
  *  1) apaga el watchdog,
  *  2) inicializa PCBs y stacks de usuario,
  *  3) inicializa el timer de Round-Robin,

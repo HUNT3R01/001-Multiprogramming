@@ -1,7 +1,6 @@
-/*
- * COMENTARIOS FASE 2 - user/P1/main.c
+/* user/P1/main.c
  *
- * Proceso sano de la demo final. P1 demuestra:
+ * Proceso de P1 demuestra:
  *  - SYS_WRITE,
  *  - ventana larga para que el timer lo interrumpa,
  *  - SYS_YIELD,
@@ -9,7 +8,7 @@
  *  - SYS_EXIT al final.
  */
 
-// Proceso 1 — demo final Phase 2.
+// Proceso 1 
 // Cubre SYS_WRITE, SYS_YIELD, preemption por timer y SYS_EXIT.
 #include "user_syscalls.h"
 
@@ -28,7 +27,10 @@ void p1_start(void) {
     }
 }
 
-// Flujo principal de P1 para la demo final.
+// Flujo principal de P1. Primero deja una ventana larga 
+// para que el timer lo interrumpa, luego hace SYS_WRITE + SYS_YIELD varias veces y 
+// finalmente hace SYS_EXIT. Si P2 ya fue aislado por fault, P1 debe seguir corriendo normalmente y 
+// salir con SYS_EXIT. Si no hay procesos runnable despues de que P1 sale, el kernel debe entrar al idle documentado.
 void p1_main(void) {
     static const char preempt[] = "[P1] timer preemption window\r\n";
     static const char msg[] = "[P1] write + yield\r\n";
@@ -57,7 +59,7 @@ void p1_main(void) {
 static void long_preemption_window(void) {
     volatile unsigned int i;
 
-    for (i = 0; i < 300000000u; i++) {
+    for (i = 0; i < 300000000; i++) {
         // Evita que el compilador elimine el loop y mantiene ejecución en USR.
         asm volatile("" ::: "memory");
     }

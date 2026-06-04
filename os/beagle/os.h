@@ -1,8 +1,7 @@
-/*
- * COMENTARIOS FASE 2 - os.h
+/* os.h
  *
- * Cabecera comun del kernel Beagle. Agrupa direcciones de hardware,
- * constantes de syscalls, codigos de error, modos ARM, estados de proceso y
+ * Agrupa direcciones de hardware,constantes de syscalls, 
+ * codigos de error, modos ARM, estados de proceso y
  * la estructura PCB usada por IRQ, SVC y aborts.
  */
 

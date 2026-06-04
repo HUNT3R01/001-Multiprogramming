@@ -1,18 +1,7 @@
-// COMENTARIOS FASE 2 - root.s
-//
-// Este archivo contiene las partes mas delicadas del kernel:
-//  - tabla de vectores ARM,
-//  - entrada por SVC para syscalls,
-//  - entrada por IRQ para timer preemptivo,
-//  - entrada por abort para faults de usuario,
-//  - retorno estilo excepcion hacia modo USR.
-//
+// root.s
 // Todas las rutas guardan el contexto en un trap-frame compatible:
 //   r0-r3, r4-r12, lr_usr, cpsr_usr, pc_usr
 // Asi el mismo tipo de frame puede restaurarse despues de IRQ, SVC o fault.
-//
-// Nota: SYS mode comparte registros bancados SP/LR con USR, pero permite que
-// el kernel ejecute instrucciones privilegiadas para guardar/restaurar estado.
 
 .section .text
 .syntax unified

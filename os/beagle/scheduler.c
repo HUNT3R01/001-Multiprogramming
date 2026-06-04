@@ -1,9 +1,6 @@
-/*
- * COMENTARIOS FASE 2 - scheduler.c
+/* scheduler.c
  *
  * Scheduler Round-Robin usado por dos rutas:
- *  - interrupcion de timer: preemption asincrona,
- *  - sys_yield/fault/exit: seleccion del siguiente proceso runnable.
  *
  * Si solo queda un proceso vivo, el scheduler puede devolver el mismo PID.
  * Eso es normal y por eso en la demo aparece dispatch pid=1 despues de que

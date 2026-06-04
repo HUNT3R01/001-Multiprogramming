@@ -1,7 +1,6 @@
-/*
- * COMENTARIOS FASE 2 - pcb.c
+/* pcb.c
  *
- * Aqui se construye el contexto inicial de cada proceso de usuario.
+ * Aca se construye el contexto inicial de cada proceso de usuario.
  * El objetivo principal es que P1 y P2 empiecen con CPSR en modo USR,
  * no en modo SYS/SVC. Tambien se guardan los rangos de memoria que luego
  * SYS_WRITE usa para validar punteros de usuario antes de leerlos.
@@ -24,17 +23,6 @@ static void clear_phase2_fields(PCB *p) {
     p->termination_reason = 0;
 }
 
-// Prepara el stack inicial de un proceso de usuario.
-//
-// El formato del stack debe coincidir con root.s:
-//
-// low memory:
-//   r0-r3
-//   r4-r12, lr
-//   cpsr
-//   pc
-// high memory
-//
 static void setup_stack(PCB *p, unsigned int entry, unsigned int stack_top,
                         unsigned int user_start, unsigned int user_end) {
     // El stack crece hacia abajo, por eso empezamos en stack_top y usamos --sp.
