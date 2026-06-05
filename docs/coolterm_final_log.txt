@@ -1,0 +1,98 @@
+=== OS Multiprogramming - Phase 2 Beagle ===
+Target: BeagleBone Black
+PCBs y stacks inicializados
+Timer listo
+Listo - iniciando P1 en modo USR
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=initial_launch
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] timer preemption window
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=30
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+[P2] syscall validation
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=25
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+[P2] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+[P2] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=-2
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=-3
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=99
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=99 rc=-1
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+[P2] negative syscall tests OK
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=32
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=syscall id=2
+[P2] forcing data abort
+MODE_SWITCH KERNEL_TO_USER pid=2 reason=syscall_return id=2 rc=25
+MODE_SWITCH USER_TO_KERNEL pid=2 reason=fault type=data_abort
+FAULT_INFO pid=2 pc=2183135784 addr=4294967295 status=1
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=fault_recovery
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] write + yield
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=20
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=0
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=0 rc=0
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=2
+[P1] exit
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=syscall_return id=2 rc=11
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=timer_irq
+MODE_SWITCH KERNEL_TO_USER pid=1 reason=dispatch
+MODE_SWITCH USER_TO_KERNEL pid=1 reason=syscall id=1
+No hay procesos runnable. Kernel idle.

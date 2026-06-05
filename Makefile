@@ -11,11 +11,43 @@ QEMU_DIR   = os/qemu
 P1_DIR     = user/P1
 P2_DIR     = user/P2
 LIB_DIR    = lib
+TEST       ?= final
+
+BEAGLE_P1_SRC = $(P1_DIR)/main.c
+BEAGLE_P2_SRC = $(P2_DIR)/main.c
+
+ifeq ($(TEST),write)
+BEAGLE_P1_SRC = user/tests/write/p1_main.c
+BEAGLE_P2_SRC = user/tests/write/p2_main.c
+else ifeq ($(TEST),yield)
+BEAGLE_P1_SRC = user/tests/yield/p1_main.c
+BEAGLE_P2_SRC = user/tests/yield/p2_main.c
+else ifeq ($(TEST),exit)
+BEAGLE_P1_SRC = user/tests/exit/p1_main.c
+BEAGLE_P2_SRC = user/tests/exit/p2_main.c
+else ifeq ($(TEST),errors)
+BEAGLE_P1_SRC = user/tests/errors/p1_main.c
+BEAGLE_P2_SRC = user/tests/errors/p2_main.c
+else ifeq ($(TEST),timer)
+BEAGLE_P1_SRC = user/tests/timer/p1_main.c
+BEAGLE_P2_SRC = user/tests/timer/p2_main.c
+else ifeq ($(TEST),fault)
+BEAGLE_P1_SRC = user/tests/fault/p1_main.c
+BEAGLE_P2_SRC = user/tests/fault/p2_main.c
+else ifeq ($(TEST),final)
+BEAGLE_P1_SRC = $(P1_DIR)/main.c
+BEAGLE_P2_SRC = $(P2_DIR)/main.c
+else ifeq ($(TEST),final_demo)
+BEAGLE_P1_SRC = user/tests/final_demo/p1_main.c
+BEAGLE_P2_SRC = user/tests/final_demo/p2_main.c
+else
+$(error TEST invalido. Usa: final, final_demo, write, yield, exit, errors, timer, fault)
+endif
 
 CFLAGS_BEAGLE = -mcpu=cortex-a8 -marm -nostdlib -nostartfiles -ffreestanding -O0 -g -Wall -I$(LIB_DIR) -I$(BEAGLE_DIR)
 CFLAGS_QEMU   = -mcpu=arm926ej-s -marm -nostdlib -nostartfiles -ffreestanding -O0 -g -Wall -I$(LIB_DIR) -I$(QEMU_DIR)
 
-.PHONY: all beagle qemu qemu-build qemu-run clean
+.PHONY: all beagle qemu qemu-build qemu-run clean test-list
 
 all: beagle
 
@@ -44,6 +76,10 @@ BEAGLE_OS_OBJS = \
 
 beagle: $(OUT)/os_beagle.bin $(OUT)/p1.bin $(OUT)/p2.bin
 	@echo "[OK] Build Beagle completado"
+	@echo "[OK] TEST=$(TEST)"
+
+test-list:
+	@echo "TEST disponibles: final final_demo write yield exit errors timer fault"
 
 $(OUT)/beagle_root.o: $(BEAGLE_DIR)/root.s | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
@@ -86,10 +122,10 @@ $(OUT)/os_beagle.bin: $(OUT)/os_beagle.elf
 $(OUT)/stdio_user.o: $(LIB_DIR)/stdio.c $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -DUSER_SYSCALLS -c $< -o $@
 
-$(OUT)/p1_main.o: $(P1_DIR)/main.c $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
+$(OUT)/p1_main.o: $(BEAGLE_P1_SRC) $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
 
-$(OUT)/p2_main.o: $(P2_DIR)/main.c $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
+$(OUT)/p2_main.o: $(BEAGLE_P2_SRC) $(LIB_DIR)/stdio.h $(LIB_DIR)/user_syscalls.h | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@
 
 $(OUT)/p1.elf: $(OUT)/p1_main.o $(OUT)/stdio_user.o $(OUT)/os_beagle.elf $(P1_DIR)/p1.ld
