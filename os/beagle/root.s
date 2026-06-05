@@ -24,13 +24,14 @@
 .equ MODE_IRQ_I_F, 0xD2     // IRQ mode, ARM state, IRQ/FIQ disabled
 .equ MODE_SVC_I_F, 0xD3     // SVC mode, ARM state, IRQ/FIQ disabled
 .equ MODE_ABT_I_F, 0xD7     // Abort mode, ARM state, IRQ/FIQ disabled
+.equ MODE_UND_I_F, 0xDB     // Undefined mode, ARM state, IRQ/FIQ disabled
 .equ MODE_SYS_I_F, 0xDF     // SYS mode, ARM state, IRQ/FIQ disabled
 
 .align 5
 _start:
 vector_table:
     b reset_handler
-    b hang
+    b undefined_instruction_handler
     b svc_handler
     b prefetch_abort_handler
     b data_abort_handler
@@ -47,6 +48,10 @@ reset_handler:
     msr cpsr_c, #MODE_ABT_I_F
     ldr sp, =_stack_top
     sub sp, sp, #0x400
+
+    msr cpsr_c, #MODE_UND_I_F
+    ldr sp, =_stack_top
+    sub sp, sp, #0x600
 
     // Configura stack para modo SVC.
     msr cpsr_c, #MODE_SVC_I_F
@@ -78,6 +83,43 @@ bss_done:
 
 hang:
     b hang
+
+
+undefined_instruction_handler:
+    sub lr, lr, #4
+    stmfd sp!, {r0-r3}
+
+    mov r1, lr
+    mrs r2, spsr
+
+    msr cpsr_c, #MODE_SYS_I_F
+
+    stmfd sp!, {r1}
+    stmfd sp!, {r2}
+
+    stmfd sp!, {r4-r12, lr}
+
+    msr cpsr_c, #MODE_UND_I_F
+    ldmfd sp!, {r0-r3}
+    msr cpsr_c, #MODE_SYS_I_F
+    stmfd sp!, {r0-r3}
+
+    mov r0, sp
+    mov r1, #3
+    mov r2, #0
+    mov r3, #0
+    bl fault_handler_c
+
+    mov sp, r0
+
+    ldmfd sp!, {r0-r3}
+    ldmfd sp!, {r4-r12, lr}
+    ldmfd sp!, {r2}
+    ldmfd sp!, {r1}
+
+    msr cpsr_c, #MODE_UND_I_F
+    msr spsr_cxsf, r2
+    movs pc, r1
 
 svc_handler:
     // En SVC, LR_svc apunta a la instruccion siguiente al svc #0.

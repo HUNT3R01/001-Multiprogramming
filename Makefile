@@ -12,36 +12,51 @@ P1_DIR     = user/P1
 P2_DIR     = user/P2
 LIB_DIR    = lib
 TEST       ?= final
+VALID_TESTS = final final_demo write yield exit errors timer privileged fault
+SELECTED_TEST = $(strip $(TEST))
+REQUESTED_GOALS = $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
+NEED_TEST_VALIDATION = $(filter all beagle,$(REQUESTED_GOALS))
+
+ifneq ($(NEED_TEST_VALIDATION),)
+ifeq ($(SELECTED_TEST),)
+$(error TEST vacio. Usa uno de: $(VALID_TESTS). Ejemplo: make beagle TEST=errors)
+endif
+
+ifeq ($(filter $(SELECTED_TEST),$(VALID_TESTS)),)
+$(error TEST invalido: '$(TEST)'. Usa uno de: $(VALID_TESTS))
+endif
+endif
 
 BEAGLE_P1_SRC = $(P1_DIR)/main.c
 BEAGLE_P2_SRC = $(P2_DIR)/main.c
 
-ifeq ($(TEST),write)
+ifeq ($(SELECTED_TEST),write)
 BEAGLE_P1_SRC = user/tests/write/p1_main.c
 BEAGLE_P2_SRC = user/tests/write/p2_main.c
-else ifeq ($(TEST),yield)
+else ifeq ($(SELECTED_TEST),yield)
 BEAGLE_P1_SRC = user/tests/yield/p1_main.c
 BEAGLE_P2_SRC = user/tests/yield/p2_main.c
-else ifeq ($(TEST),exit)
+else ifeq ($(SELECTED_TEST),exit)
 BEAGLE_P1_SRC = user/tests/exit/p1_main.c
 BEAGLE_P2_SRC = user/tests/exit/p2_main.c
-else ifeq ($(TEST),errors)
+else ifeq ($(SELECTED_TEST),errors)
 BEAGLE_P1_SRC = user/tests/errors/p1_main.c
 BEAGLE_P2_SRC = user/tests/errors/p2_main.c
-else ifeq ($(TEST),timer)
+else ifeq ($(SELECTED_TEST),timer)
 BEAGLE_P1_SRC = user/tests/timer/p1_main.c
 BEAGLE_P2_SRC = user/tests/timer/p2_main.c
-else ifeq ($(TEST),fault)
+else ifeq ($(SELECTED_TEST),privileged)
+BEAGLE_P1_SRC = user/tests/privileged/p1_main.c
+BEAGLE_P2_SRC = user/tests/privileged/p2_main.c
+else ifeq ($(SELECTED_TEST),fault)
 BEAGLE_P1_SRC = user/tests/fault/p1_main.c
 BEAGLE_P2_SRC = user/tests/fault/p2_main.c
-else ifeq ($(TEST),final)
+else ifeq ($(SELECTED_TEST),final)
 BEAGLE_P1_SRC = $(P1_DIR)/main.c
 BEAGLE_P2_SRC = $(P2_DIR)/main.c
-else ifeq ($(TEST),final_demo)
+else ifeq ($(SELECTED_TEST),final_demo)
 BEAGLE_P1_SRC = user/tests/final_demo/p1_main.c
 BEAGLE_P2_SRC = user/tests/final_demo/p2_main.c
-else
-$(error TEST invalido. Usa: final, final_demo, write, yield, exit, errors, timer, fault)
 endif
 
 CFLAGS_BEAGLE = -mcpu=cortex-a8 -marm -nostdlib -nostartfiles -ffreestanding -O0 -g -Wall -I$(LIB_DIR) -I$(BEAGLE_DIR)
@@ -76,10 +91,10 @@ BEAGLE_OS_OBJS = \
 
 beagle: $(OUT)/os_beagle.bin $(OUT)/p1.bin $(OUT)/p2.bin
 	@echo "[OK] Build Beagle completado"
-	@echo "[OK] TEST=$(TEST)"
+	@echo "[OK] TEST=$(SELECTED_TEST)"
 
 test-list:
-	@echo "TEST disponibles: final final_demo write yield exit errors timer fault"
+	@echo "TEST disponibles: $(VALID_TESTS)"
 
 $(OUT)/beagle_root.o: $(BEAGLE_DIR)/root.s | $(OUT)
 	$(CC) $(CFLAGS_BEAGLE) -c $< -o $@

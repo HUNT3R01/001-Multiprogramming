@@ -14,6 +14,23 @@ make beagle TEST=exit
 make beagle TEST=errors
 make beagle TEST=timer
 make beagle TEST=fault
+make beagle TEST=privileged
+```
+
+
+Validacion de `TEST`:
+
+- Si no escribes `TEST`, se usa `TEST=final` por defecto.
+- Si escribes `TEST=` vacio, el Makefile detiene el build con error.
+- Si escribes un nombre que no existe, el Makefile detiene el build con error.
+- Solo se aceptan los nombres de la tabla de pruebas.
+
+Ejemplos invalidos:
+
+```bash
+make beagle TEST=
+make beagle TEST=abc
+make beagle TEST=finalx
 ```
 
 Después de compilar se cargan los binarios igual que siempre:
@@ -37,3 +54,4 @@ Pruebas disponibles:
 | `errors` | `rc=-2`, `rc=-3` y `rc=-1`. |
 | `timer` | Preemption por timer sin `sys_yield`. |
 | `fault` | `data_abort` en P2 y recuperación hacia P1. |
+| `privileged` | Instrucción privilegiada CP15 desde USR; se captura como `undefined_instruction` y P1 continúa. |

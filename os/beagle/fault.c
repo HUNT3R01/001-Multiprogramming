@@ -23,6 +23,10 @@ static const char *fault_name(unsigned int fault_type) {
         return "prefetch_abort";
     }
 
+    if (fault_type == FAULT_UNDEFINED_INSTRUCTION) {
+        return "undefined_instruction";
+    }
+
     return "unknown";
 }
 
@@ -34,6 +38,10 @@ static int termination_reason_for_fault(unsigned int fault_type) {
 
     if (fault_type == FAULT_PREFETCH_ABORT) {
         return TERM_FAULT_PREFETCH_ABORT;
+    }
+
+    if (fault_type == FAULT_UNDEFINED_INSTRUCTION) {
+        return TERM_FAULT_UNDEFINED_INSTRUCTION;
     }
 
     return TERM_FAULT_UNKNOWN;

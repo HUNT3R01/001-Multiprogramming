@@ -75,6 +75,7 @@
 #define FAULT_NONE              0
 #define FAULT_DATA_ABORT        1
 #define FAULT_PREFETCH_ABORT    2
+#define FAULT_UNDEFINED_INSTRUCTION 3
 
 // Razones de terminacion guardadas en el PCB.
 #define TERM_NONE               0
@@ -82,6 +83,7 @@
 #define TERM_FAULT_DATA_ABORT   2
 #define TERM_FAULT_PREFETCH_ABORT 3
 #define TERM_FAULT_UNKNOWN      4
+#define TERM_FAULT_UNDEFINED_INSTRUCTION 5
 
 // Modos ARM
 #define CPSR_MODE_USR   0x10
